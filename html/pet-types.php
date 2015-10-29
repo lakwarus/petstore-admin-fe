@@ -7,6 +7,8 @@ if(!isset($_SESSION['username'])){
 }
 //return page breadcrumbs
 $breadcrumbs = array("pet-types.php"=>'Pet Types');
+$url = 'http://'.PET_SERVICE.':'.PET_SERVICE_PORT.'/category/all';
+$pet_catogories = callAuthAPIgetPetTypes($url,  preg_replace('/\s+/', '', $_SESSION['authtoken']));
 ?>
 <!--
 ~   Copyright (c) WSO2 Inc. (http://wso2.com) All Rights Reserved.
@@ -76,14 +78,14 @@ include('includes/header.php');
                 </a>
                 <ul class="dropdown-menu tiles arrow dark add-margin-1x" role="menu">
                     <li>
-                        <a href="#">
-                            <i class="icon fa  fa-paw"></i>
-                            <span class="name">Pet Type</span>
+                        <a href="pet-types.php">
+                            <img src="images/list-pet-type.png" class="invert-png">
+                            <span class="name">Pet Types</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#">
-                            <i class="icon fw fw-wsdl"></i>
+                        <a href="pets.php">
+                            <img src="images/list-pets.png" class="invert-png">
                             <span class="name">Pets</span>
                         </a>
                     </li>
@@ -121,11 +123,46 @@ include('includes/header.php');
     <!-- page content -->
     <div class="container-fluid body-wrapper">
         <div class="clearfix"></div>
-        <?php
-        $url = 'http://'.PET_SERVICE.':'.PET_SERVICE_PORT.'/category/all';
-        echo callAuthAPIgetPetTypes($url,  preg_replace('/\s+/', '', $_SESSION['authtoken']));
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-striped">
+                    <?php
+                    if(is_array($pet_catogories) && (count($pet_catogories) > 0)) {
+                    ?>
+                    <thead>
+                    <tr>
+                        <th>Category Name</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                        foreach ($pet_catogories as $json) {
+                    ?>
+                    <tr>
+                        <td><?php echo $json['name'] ?></td>
+                        <td>
+                            <a href="#" class="btn padding-reduce-on-grid-view remove-cat"
+                               data-category="<?php echo $json['name'] ?>">
+                                <span class="fw-stack">
+                                    <i class="fw fw-ring fw-stack-2x"></i>
+                                    <i class="fw fw-delete fw-stack-1x"></i>
+                                </span>
+                                <span class="hidden-xs">Delete</span>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php
+                        }
+                    }else{
+                        echo '<div class="alert alert-info" role="alert">No Pet Types added yet. Click <a href="add-pet-types.php">here to add new pet type</a></div>';
+                    }
+                    ?>
 
-        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
 </div><!-- /#page-content-wrapper -->
@@ -145,6 +182,50 @@ include('includes/header.php');
 
 <!-- Noty JS -->
 <script src="libs/noty_2.3.5/packaged/jquery.noty.packaged.min.js"></script>
+<script>
+   $(document).on('click', '.remove-cat', function(){
+       var pet_category = $(this).attr('data-category');
+       noty({
+           layout: 'bottomRight',
+           type: 'warning',
+           text: 'Are you sure you want to delete : <strong>'+ pet_category + "</strong> ?",
+           buttons: [
+               {addClass: 'btn btn-primary', text: 'Yes', onClick: function($noty) {
+                   $noty.close();
+                   $.ajax({
+                       type: "POST",
+                       url:  "controllers/rest.php",
+                       dataType: 'json',
+                       data: {api_type: 'deletePetTypes', category_name: pet_category},
+                       success: function (data, textStatus, jqXHR) {
+                           if (data.status == 'error') {
+                               var n = noty({text: data.message, layout: 'bottomRight', type: 'error'});
+                               window.setTimeout(function(){
+                                   window.location.href = 'logout.php';
+                               }, 1500);
+                           } else if (data.status == 'warning') {
+                               var n = noty({text: data.message, layout: 'bottomRight', type: 'warning'});
+                           } else {
+                               var n = noty({text: data.message, layout: 'bottomRight', type: 'success'});
+                               window.setTimeout(function(){
+                                   window.location.href = 'pet-types.php';
+                               }, 1500);
+                           }
+                       }
+                   });
+
+               }
+               },
+               {addClass: 'btn btn-danger', text: 'No', onClick: function($noty) {
+                   $noty.close();
+               }
+               }
+           ]
+       });
+
+
+   });
+</script>
 
 <script src="js/custom.js"></script>
 
